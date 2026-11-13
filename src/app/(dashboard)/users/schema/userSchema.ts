@@ -17,7 +17,7 @@ export const userFormSchema = z.object({
     .toLowerCase()
     .trim(),
   status: userStatusEnum,
-  role: z.string().optional().default(""),
+  role: z.string(),
   roleId: z.union([z.number(), z.string()]).optional().nullable(),
   role_id: z.union([z.number(), z.string()]).optional().nullable(),
   notificationAlerts: z.boolean().optional(),

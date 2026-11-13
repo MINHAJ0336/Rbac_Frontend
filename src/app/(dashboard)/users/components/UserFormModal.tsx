@@ -143,7 +143,7 @@ export default function UserFormModal({
 
       if (initialUser) {
         let preselectedRoleId: number | string = "";
-        let preselectedRoleName = initialUser.role || "";
+        const preselectedRoleName = initialUser.role || "";
 
         if (
           initialUser.role_id !== undefined &&
@@ -160,7 +160,7 @@ export default function UserFormModal({
         // If preselectedRoleId is not found, but initialUser.role matches an availableRole name (and role_id is not "NULL")
         if (
           preselectedRoleId === "" &&
-          initialUser.role_id !== "NULL" &&
+          String(initialUser.role_id) !== "NULL" &&
           initialUser.role &&
           availableRoles.length > 0
         ) {

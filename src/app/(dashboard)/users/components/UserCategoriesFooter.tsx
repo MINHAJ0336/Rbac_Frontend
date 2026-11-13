@@ -5,12 +5,24 @@ import { UserStats } from "../types/user.types";
 
 interface UserCategoriesFooterProps {
   stats: UserStats;
+  isLoading?: boolean;
+  onSelectCategory?: (category: string) => void;
 }
 
 export default function UserCategoriesFooter({
   stats,
+  isLoading,
+  onSelectCategory,
 }: UserCategoriesFooterProps) {
-  const { teachers, administrators, supportStaff, other } = stats.roleCounts;
+  const { teachers = 0, administrators = 0, supportStaff = 0, other = 0 } =
+    stats.roleCounts || {};
+
+  const categories = [
+    { label: "Teachers", count: teachers, roleKey: "Teacher" },
+    { label: "Administrators", count: administrators, roleKey: "Administrator" },
+    { label: "Support staff", count: supportStaff, roleKey: "Support staff" },
+    { label: "Other", count: other, roleKey: "Other" },
+  ];
 
   return (
     <div className="space-y-4">
@@ -19,34 +31,21 @@ export default function UserCategoriesFooter({
           User categories
         </span>
 
-        <div className="flex flex-wrap items-center gap-4 sm:gap-8 text-xs font-semibold text-[#16382b]">
-          <div>
-            <span className="text-[#6b7c72] mr-1.5 font-medium">Teachers</span>
-            <span className="font-extrabold text-[#11261c]">{teachers}</span>
-          </div>
-
-          <div>
-            <span className="text-[#6b7c72] mr-1.5 font-medium">
-              Administrators
-            </span>
-            <span className="font-extrabold text-[#11261c]">
-              {administrators}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[#6b7c72] mr-1.5 font-medium">
-              Support staff
-            </span>
-            <span className="font-extrabold text-[#11261c]">
-              {supportStaff}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[#6b7c72] mr-1.5 font-medium">Other</span>
-            <span className="font-extrabold text-[#11261c]">{other}</span>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs font-semibold text-[#16382b]">
+          {categories.map((cat) => (
+            <button
+              key={cat.label}
+              type="button"
+              disabled={isLoading}
+              onClick={() => onSelectCategory && onSelectCategory(cat.roleKey)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-[#dfe9e1] transition-colors cursor-pointer text-left"
+            >
+              <span className="text-[#6b7c72] font-medium">{cat.label}</span>
+              <span className="font-extrabold text-[#11261c] bg-white/70 px-1.5 py-0.5 rounded-md text-[11px]">
+                {cat.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 

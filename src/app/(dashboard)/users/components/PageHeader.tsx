@@ -25,7 +25,7 @@ export function PageHeader({ onAssignScope, onAddUser }: PageHeaderProps) {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
         {onAssignScope && (
           <PermissionGuard module="users" action="update">
             <Button

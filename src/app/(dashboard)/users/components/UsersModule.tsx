@@ -286,7 +286,7 @@ export function UsersModule({ initialData, initialStats }: UsersModuleProps) {
         <UserCategoriesFooter
           stats={stats}
           isLoading={isLoading && users.length === 0}
-          onSelectCategory={(categoryName) => {
+          onSelectCategory={(categoryName: string) => {
             const matched = allKnownRoles.find(
               (r) => r.toLowerCase().trim() === categoryName.toLowerCase().trim(),
             );

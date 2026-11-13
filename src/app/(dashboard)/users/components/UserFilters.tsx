@@ -51,9 +51,9 @@ export default function UserFilters({
       </div>
 
       {/* Filter controls row */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
         {/* Search input */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -63,7 +63,7 @@ export default function UserFilters({
         </div>
 
         {/* Roles Dropdown */}
-        <div className="min-w-[140px]">
+        <div className="w-full sm:w-48 flex-shrink-0">
           <Select
             value={role}
             onChange={(e) => onRoleChange(e.target.value)}
@@ -83,7 +83,7 @@ export default function UserFilters({
         </div>
 
         {/* Statuses Dropdown */}
-        <div className="min-w-[140px]">
+        <div className="w-full sm:w-40 flex-shrink-0">
           <Select
             value={status}
             onChange={(e) => onStatusChange(e.target.value)}
