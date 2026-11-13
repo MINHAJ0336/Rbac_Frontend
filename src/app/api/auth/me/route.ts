@@ -127,3 +127,68 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  const cookieStore = await cookies();
+
+  try {
+    const body = await request.json();
+    const { name, email } = body || {};
+
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json(
+        { success: false, message: "Name is required." },
+        { status: 400 },
+      );
+    }
+
+    const trimmedName = name.trim();
+    const trimmedEmail = typeof email === "string" ? email.trim() : "";
+
+    cookieStore.set("uam_user_name", trimmedName, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+    });
+
+    if (trimmedEmail) {
+      cookieStore.set("uam_user_email", trimmedEmail, {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+      });
+    }
+
+    const currentRole =
+      cookieStore.get("uam_user_role")?.value || "Administrator";
+
+    const initials =
+      trimmedName
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || (trimmedName[0] || "U").toUpperCase();
+
+    const updatedUser = {
+      name: trimmedName,
+      email: trimmedEmail || cookieStore.get("uam_user_email")?.value || "",
+      role: currentRole,
+      initials,
+    };
+
+    return NextResponse.json({
+      success: true,
+      message: "Profile updated successfully.",
+      user: updatedUser,
+    });
+  } catch (error: unknown) {
+    const safeErrorMsg =
+      error instanceof Error ? error.message : "Failed to update profile.";
+    return NextResponse.json(
+      { success: false, message: safeErrorMsg },
+      { status: 500 },
+    );
+  }
+}

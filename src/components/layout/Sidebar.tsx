@@ -37,8 +37,10 @@ import {
   Compass,
   AlertCircle,
   RotateCw,
+  MoreVertical,
 } from "lucide-react";
 import Logo from "./Logo";
+import ProfileModal from "./ProfileModal";
 import { useAuth } from "@/context/auth-context";
 import {
   navigationService,
@@ -334,6 +336,7 @@ export default function Sidebar({
   const [navItems, setNavItems] = useState<DynamicNavigationItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
 
   // Request deduplication ref
   const isFetchingRef = useRef<boolean>(false);
@@ -530,7 +533,7 @@ export default function Sidebar({
           </nav>
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-white/10 flex-shrink-0">
+        <div className="pt-4 border-t border-white/10 flex-shrink-0">
           <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
             <h4 className="text-xs font-bold text-white mb-1">{help.title}</h4>
             <p className="text-[11px] text-white/70 leading-relaxed mb-3">
@@ -546,32 +549,6 @@ export default function Sidebar({
               className="w-full py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors cursor-pointer"
             >
               {help.buttonText}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#225740] text-white flex items-center justify-center font-bold text-xs border border-white/20">
-                {displayUser.initials}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-white leading-tight">
-                  {displayUser.name || "User"}
-                </span>
-                <span className="text-[10px] text-white/60 leading-tight">
-                  {displayUser.role || "Administrator"}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              title="Sign Out"
-              aria-label="Sign Out"
-              className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>

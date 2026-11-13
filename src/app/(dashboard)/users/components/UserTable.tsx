@@ -56,7 +56,7 @@ export default function UserTable({
 
   if (isLoading) {
     return (
-      <div className="overflow-x-auto rounded-xl border border-[#e5ece7]">
+      <div className="overflow-x-auto rounded-xl border border-[#e5ece7] min-h-[220px]">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#edf2ee] text-[10.5px] uppercase font-bold text-[#6b7c72] tracking-wider">
@@ -115,7 +115,7 @@ export default function UserTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#e5ece7]">
+    <div className="overflow-x-auto rounded-xl border border-[#e5ece7] min-h-[220px]">
       <Table className="min-w-[640px]">
         <TableHeader>
           <TableRow className="bg-[#edf2ee] text-[10.5px] uppercase font-bold text-[#6b7c72] tracking-wider">
@@ -135,9 +135,10 @@ export default function UserTable({
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-[#eef3ef] bg-white text-xs text-[#16382b]">
-          {users.map((user) => {
+          {users.map((user, idx) => {
             const isSelected = selectedIds.includes(user.id);
             const isMenuOpen = activeMenuId === user.id;
+            const isLastRows = idx >= Math.max(1, users.length - 2);
 
             return (
               <TableRow
@@ -219,7 +220,11 @@ export default function UserTable({
                             className="fixed inset-0 z-20"
                             onClick={() => setActiveMenuId(null)}
                           />
-                          <div className="absolute right-3 top-10 z-30 w-36 bg-white rounded-xl shadow-lg border border-[#e5ece7] py-1 text-left animate-fade-in">
+                          <div
+                            className={`absolute right-3 ${
+                              isLastRows ? "bottom-10" : "top-10"
+                            } z-30 w-36 bg-white rounded-xl shadow-lg border border-[#e5ece7] py-1 text-left animate-fade-in`}
+                          >
                             {canReadUser && (
                               <button
                                 type="button"

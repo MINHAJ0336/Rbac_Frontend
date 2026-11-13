@@ -111,6 +111,21 @@ export const authService = {
     }
   },
 
+  // Update Profile
+  async updateProfile(payload: { name: string; email?: string }): Promise<AuthUser> {
+    const response = await apiClient.patch<{
+      success: boolean;
+      user?: AuthUser;
+      message?: string;
+    }>("/api/auth/me", payload);
+
+    if (!response.success || !response.user) {
+      throw new Error(response.message || "Failed to update profile.");
+    }
+
+    return response.user;
+  },
+
   // Logout
   async logout(): Promise<void> {
     try {

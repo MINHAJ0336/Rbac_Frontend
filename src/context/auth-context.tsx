@@ -32,6 +32,7 @@ export interface AuthContextType {
   login: (data: LoginRequest) => Promise<LoginResponse>;
   verifyOtp: (data: VerifyOtpRequest) => Promise<VerifyOtpResponse>;
   logout: () => Promise<void>;
+  updateProfile: (data: { name: string; email?: string }) => Promise<AuthUser>;
   refreshSession: () => Promise<string | null>;
   setAuthSession: (user: AuthUser, token?: string) => void;
   clearAuthSession: () => void;
@@ -198,6 +199,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update profile
+  const updateProfile = async (data: { name: string; email?: string }) => {
+    const updated = await authService.updateProfile(data);
+    setUser(updated);
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -208,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         verifyOtp,
         logout,
+        updateProfile,
         refreshSession,
         setAuthSession,
         clearAuthSession,
@@ -231,6 +240,7 @@ export function useAuth(): AuthContextType {
       login: async () => ({ success: false, requiresOtp: false, message: "AuthProvider not mounted" }),
       verifyOtp: async () => ({ success: false, message: "AuthProvider not mounted" }),
       logout: async () => {},
+      updateProfile: async () => ({ name: "", email: "", role: "" }),
       refreshSession: async () => null,
       setAuthSession: () => {},
       clearAuthSession: () => {},

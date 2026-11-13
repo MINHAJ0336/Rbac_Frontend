@@ -7,6 +7,11 @@ import {
 
 const AUDIT_ROUTES = {
   LIST: "/api/v1/audit/audit-logs",
+  SUMMARY_CANDIDATES: [
+    "/api/v1/audit/summary",
+    "/api/v1/audit/audit-summary",
+    "/api/v1/audit/logs/summary",
+  ],
 } as const;
 
 export interface RawAuditItem {
@@ -244,7 +249,7 @@ export function computeAuditStats(events: AuditEvent[]): AuditStats {
     totalEvents: {
       value: total.toLocaleString(),
       badge: `${total} logged`,
-      subtitle: "total audit Login",
+      subtitle: "total audit events",
     },
     successfulEvents: {
       value: successful.toLocaleString(),
@@ -337,11 +342,72 @@ export const auditService = {
   },
 
   /**
-   * Retrieves aggregate audit statistics derived directly from backend audit logs
+   * Retrieves aggregate audit statistics from backend summary endpoint,
+   * falling back to computing from audit logs if summary endpoint is unavailable.
    */
   async getAuditStats(filters?: AuditFilters): Promise<AuditStats> {
     const events = await this.getAuditLogs(filters);
-    return computeAuditStats(events);
+    const computed = computeAuditStats(events);
+
+    for (const summaryPath of AUDIT_ROUTES.SUMMARY_CANDIDATES) {
+      try {
+        const rawSummary = await apiClient.get<Record<string, unknown>>(summaryPath);
+        const summary = ((rawSummary?.data as Record<string, unknown>) || rawSummary) as Record<string, unknown>;
+
+        if (
+          summary &&
+          (summary.total_audit_login !== undefined ||
+            summary.successful_login !== undefined ||
+            summary.failed_login !== undefined)
+        ) {
+          const total = Number(summary.total_audit_login ?? events.length);
+          const successful = Number(summary.successful_login ?? 0);
+          const failed = Number(summary.failed_login ?? 0);
+          const successRate =
+            summary.success_rate !== undefined
+              ? String(summary.success_rate)
+              : total > 0
+                ? ((successful / total) * 100).toFixed(2)
+                : "100";
+          const failureRate =
+            summary.failure_rate !== undefined
+              ? String(summary.failure_rate)
+              : total > 0
+                ? ((failed / total) * 100).toFixed(2)
+                : "0";
+
+          return {
+            totalEvents: {
+              value: total.toLocaleString(),
+              badge: `${total.toLocaleString()} logged`,
+              subtitle: computed.totalEvents.subtitle,
+            },
+            successfulEvents: {
+              value: successful.toLocaleString(),
+              badge: `${successRate}%`,
+              subtitle: computed.successfulEvents.subtitle,
+            },
+            failedEvents: {
+              value: failed.toLocaleString(),
+              badge: `${failureRate}%`,
+              subtitle: computed.failedEvents.subtitle,
+            },
+            eventsToday:
+              summary.login_today !== undefined
+                ? {
+                    value: Number(summary.login_today).toLocaleString(),
+                    badge: "Live",
+                    subtitle: computed.eventsToday.subtitle,
+                  }
+                : computed.eventsToday,
+          };
+        }
+      } catch {
+        // Try next candidate summary endpoint
+      }
+    }
+
+    return computed;
   },
 
   /**

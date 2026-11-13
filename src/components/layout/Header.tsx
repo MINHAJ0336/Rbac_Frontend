@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { Search, Bell, Menu, X } from "lucide-react";
+import { Search, Bell, Menu, X, ChevronDown } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import ProfileModal from "./ProfileModal";
 
 const HEADER_CONFIG = {
   breadcrumbRoot: "Workspace",
@@ -59,6 +60,8 @@ export default function Header({
               ? "Access Requests"
               : header.breadcrumbCurrent;
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const profileContainerRef = useRef<HTMLDivElement>(null);
 
   // TODO: connect notifications button with WebSocket notification stream
   const onNotificationsClick = () => {
@@ -126,19 +129,33 @@ export default function Header({
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#225740] ring-2 ring-white"></span>
         </button> */}
 
-        {/* User profile dropdown badge */}
-        <div className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-[#e5ece7]">
-          <div className="w-8 h-8 rounded-full bg-[#225740] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-            {currentUser.initials}
-          </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-bold text-[#11261c] leading-tight">
-              {currentUser.name || (isLoading ? "Loading..." : "User")}
-            </span>
-            <span className="text-[10px] text-[#6b7c72] leading-tight">
-              {currentUser.role || (isLoading ? "..." : "Admin")}
-            </span>
-          </div>
+        {/* User profile dropdown button */}
+        <div ref={profileContainerRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen((prev) => !prev)}
+            aria-label="User profile and account options"
+            className="flex items-center gap-2 pl-2 pr-1.5 py-1 -mr-1 rounded-xl border border-transparent hover:border-[#dbe5dd] hover:bg-[#f4f7f4] transition-all cursor-pointer group text-left border-l border-l-[#e5ece7]"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#225740] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:ring-2 group-hover:ring-[#225740]/20 transition-all flex-shrink-0">
+              {currentUser.initials}
+            </div>
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-bold text-[#11261c] leading-tight">
+                {currentUser.name || (isLoading ? "Loading..." : "User")}
+              </span>
+              <span className="text-[10px] text-[#6b7c72] leading-tight">
+                {currentUser.role || (isLoading ? "..." : "Admin")}
+              </span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#16382b] transition-colors ml-0.5" />
+          </button>
+
+          <ProfileModal
+            isOpen={profileModalOpen}
+            onClose={() => setProfileModalOpen(false)}
+            triggerRef={profileContainerRef}
+          />
         </div>
       </div>
 
