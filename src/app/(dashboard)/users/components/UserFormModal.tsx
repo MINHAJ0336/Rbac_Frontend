@@ -10,11 +10,23 @@ import { User, CreateUserInput, UpdateUserInput } from "../types/user.types";
 import { createUserAction, updateUserAction } from "../actions/users";
 import { getRolesAction } from "@/app/(dashboard)/roles/actions/roles";
 
+export interface UserFormModalSuccessData {
+  message?: string;
+  role_changed?: boolean;
+  role_id?: number;
+  initial_role_id?: number | string | null;
+}
+
 interface UserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (result?: UserFormModalSuccessData) => void;
   initialUser?: User | null;
+}
+
+export interface RoleItemOption {
+  id: number;
+  name: string;
 }
 
 export default function UserFormModal({
@@ -28,7 +40,7 @@ export default function UserFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dynamic Roles fetched directly from backend API
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RoleItemOption[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   const [selectedRoleToAdd, setSelectedRoleToAdd] = useState("");
   const [showAddRoleInput, setShowAddRoleInput] = useState(false);
@@ -47,6 +59,8 @@ export default function UserFormModal({
       email: "",
       status: "Active",
       role: "",
+      roleId: "",
+      role_id: null,
       notificationAlerts: false,
       emailMfa: false,
       smsMfa: false,
@@ -67,8 +81,13 @@ export default function UserFormModal({
       try {
         const roles = await getRolesAction();
         if (isMounted && Array.isArray(roles) && roles.length > 0) {
-          const names = roles.map((r) => r.name).filter(Boolean);
-          setAvailableRoles(Array.from(new Set(names)));
+          const mapped: RoleItemOption[] = roles
+            .map((r) => ({
+              id: Number(r.id),
+              name: String(r.name || "").trim(),
+            }))
+            .filter((r) => !isNaN(r.id) && Boolean(r.name));
+          setAvailableRoles(mapped);
         }
       } catch (err) {
         console.warn("[UserFormModal] Failed to fetch roles:", err);
@@ -77,8 +96,13 @@ export default function UserFormModal({
           const json = await res.json();
           const list = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
           if (isMounted && list.length > 0) {
-            const names = list.map((r: { name?: string; role_name?: string }) => r.name || r.role_name).filter(Boolean);
-            setAvailableRoles(Array.from(new Set(names)));
+            const mapped: RoleItemOption[] = list
+              .map((r: { id?: number | string; role_id?: number | string; name?: string; role_name?: string }) => ({
+                id: Number(r.id ?? r.role_id),
+                name: String(r.name || r.role_name || "").trim(),
+              }))
+              .filter((r: RoleItemOption) => !isNaN(r.id) && Boolean(r.name));
+            setAvailableRoles(mapped);
           }
         } catch {
           // ignore
@@ -97,19 +121,11 @@ export default function UserFormModal({
     };
   }, [isOpen]);
 
-  // Dynamic User Type dropdown options (includes currently assigned user role if editing)
-  const roleDropdownOptions = useMemo(() => {
-    const set = new Set<string>();
-    if (initialUser?.role && initialUser.role.trim()) {
-      set.add(initialUser.role.trim());
-    }
-    availableRoles.forEach((r) => set.add(r));
-    return Array.from(set);
-  }, [availableRoles, initialUser]);
-
   // Unassigned roles for "+ Add Role" dropdown (prevents duplicates)
   const unassignedRoles = useMemo(() => {
-    return availableRoles.filter((r) => !assignedRoles.includes(r));
+    return availableRoles
+      .map((r) => r.name)
+      .filter((name) => !assignedRoles.includes(name));
   }, [availableRoles, assignedRoles]);
 
   useEffect(() => {
@@ -126,11 +142,43 @@ export default function UserFormModal({
       setSelectedRoleToAdd("");
 
       if (initialUser) {
+        let preselectedRoleId: number | string = "";
+        let preselectedRoleName = initialUser.role || "";
+
+        if (
+          initialUser.role_id !== undefined &&
+          initialUser.role_id !== null &&
+          String(initialUser.role_id) !== "NULL" &&
+          String(initialUser.role_id) !== "null"
+        ) {
+          const parsed = Number(initialUser.role_id);
+          if (!isNaN(parsed)) {
+            preselectedRoleId = parsed;
+          }
+        }
+
+        // If preselectedRoleId is not found, but initialUser.role matches an availableRole name (and role_id is not "NULL")
+        if (
+          preselectedRoleId === "" &&
+          initialUser.role_id !== "NULL" &&
+          initialUser.role &&
+          availableRoles.length > 0
+        ) {
+          const matched = availableRoles.find(
+            (r) => r.name.toLowerCase().trim() === initialUser.role.toLowerCase().trim(),
+          );
+          if (matched) {
+            preselectedRoleId = matched.id;
+          }
+        }
+
         reset({
           name: initialUser.name,
           email: initialUser.email,
           status: initialUser.status,
-          role: initialUser.role,
+          role: preselectedRoleName,
+          roleId: preselectedRoleId,
+          role_id: typeof preselectedRoleId === "number" ? preselectedRoleId : null,
           notificationAlerts: false,
           emailMfa: false,
           smsMfa: false,
@@ -140,22 +188,28 @@ export default function UserFormModal({
           assignedRoles:
             initialUser.roles && initialUser.roles.length > 0
               ? initialUser.roles
-              : [initialUser.role],
+              : initialUser.role
+                ? [initialUser.role]
+                : [],
         });
       } else {
-        const defaultRole = availableRoles[0] || "";
+        const firstRole = availableRoles[0];
+        const defaultRoleId = firstRole ? firstRole.id : "";
+        const defaultRoleName = firstRole ? firstRole.name : "";
         reset({
           name: "",
           email: "",
           status: "Active",
-          role: defaultRole,
+          role: defaultRoleName,
+          roleId: defaultRoleId,
+          role_id: typeof defaultRoleId === "number" ? defaultRoleId : null,
           notificationAlerts: false,
           emailMfa: false,
           smsMfa: false,
           deviceBinding: false,
           deviceId: "",
           accessEnvironment: "Production",
-          assignedRoles: defaultRole ? [defaultRole] : [],
+          assignedRoles: defaultRoleName ? [defaultRoleName] : [],
         });
       }
     }
@@ -185,10 +239,40 @@ export default function UserFormModal({
     setIsSubmitting(true);
 
     try {
+      let roleIdToSend: number | undefined = undefined;
+      const rawId =
+        data.roleId !== undefined && data.roleId !== null && data.roleId !== ""
+          ? data.roleId
+          : data.role_id;
+
+      if (
+        rawId !== undefined &&
+        rawId !== null &&
+        rawId !== "" &&
+        String(rawId) !== "NULL" &&
+        String(rawId) !== "null"
+      ) {
+        const parsed = Number(rawId);
+        if (!isNaN(parsed)) {
+          roleIdToSend = parsed;
+        }
+      }
+
+      const resolvedRoleName =
+        (roleIdToSend ? availableRoles.find((r) => r.id === roleIdToSend)?.name : "") ||
+        data.role ||
+        (isEditMode && initialUser ? initialUser.role : "") ||
+        "";
+
       if (isEditMode && initialUser) {
         const payload: UpdateUserInput = {
           id: initialUser.id,
-          ...data,
+          name: data.name,
+          email: data.email,
+          status: data.status,
+          role: resolvedRoleName,
+          role_id: roleIdToSend,
+          roleId: roleIdToSend,
         };
         const response = await updateUserAction(payload);
         if (!response.success) {
@@ -196,9 +280,20 @@ export default function UserFormModal({
           setIsSubmitting(false);
           return;
         }
+
+        setIsSubmitting(false);
+        onSuccess({
+          message: response.message,
+          role_changed: response.role_changed,
+          role_id: roleIdToSend,
+          initial_role_id: initialUser.role_id,
+        });
+        onClose();
       } else {
         const payload: CreateUserInput = {
           ...data,
+          role_id: roleIdToSend,
+          roleId: roleIdToSend,
         };
         const response = await createUserAction(payload);
         if (!response.success) {
@@ -206,11 +301,14 @@ export default function UserFormModal({
           setIsSubmitting(false);
           return;
         }
-      }
 
-      setIsSubmitting(false);
-      onSuccess();
-      onClose();
+        setIsSubmitting(false);
+        onSuccess({
+          message: response.message,
+          role_id: roleIdToSend,
+        });
+        onClose();
+      }
     } catch (err) {
       setServerError(
         err instanceof Error ? err.message : "An unexpected error occurred.",
@@ -336,28 +434,48 @@ export default function UserFormModal({
               {/* User type / Primary Role - Dynamic from Backend API */}
               <div>
                 <label className="block text-xs font-bold text-[#16382b] mb-1">
-                  User type
+                  User type / Role
                 </label>
                 <select
-                  {...register("role", {
+                  {...register("roleId", {
                     onChange: (e) => {
-                      const newRole = e.target.value;
-                      if (newRole && !assignedRoles.includes(newRole)) {
-                        setValue("assignedRoles", [...assignedRoles, newRole]);
+                      const selectedVal = e.target.value;
+                      if (!selectedVal) {
+                        setValue("roleId", "");
+                        setValue("role_id", null);
+                        setValue("role", "");
+                        return;
+                      }
+                      const num = Number(selectedVal);
+                      setValue("roleId", num);
+                      setValue("role_id", num);
+                      const matched = availableRoles.find((r) => r.id === num);
+                      if (matched) {
+                        setValue("role", matched.name);
+                        if (!assignedRoles.includes(matched.name)) {
+                          setValue("assignedRoles", [...assignedRoles, matched.name]);
+                        }
                       }
                     },
                   })}
                   className="w-full h-10 px-3.5 text-xs sm:text-sm bg-white border border-[#dbe5dd] rounded-xl text-[#16382b] focus:outline-none focus:border-[#225740] cursor-pointer"
                 >
-                  {isLoadingRoles && roleDropdownOptions.length === 0 ? (
-                    <option value="">Loading roles...</option>
-                  ) : (
-                    roleDropdownOptions.map((roleName) => (
-                      <option key={roleName} value={roleName}>
-                        {roleName}
+                  <option value="">
+                    {isLoadingRoles ? "Loading roles..." : "Select a role"}
+                  </option>
+                  {initialUser?.role_id &&
+                    !availableRoles.some(
+                      (r) => r.id === Number(initialUser.role_id),
+                    ) && (
+                      <option value={Number(initialUser.role_id)}>
+                        {initialUser.role || `Role ${initialUser.role_id}`}
                       </option>
-                    ))
-                  )}
+                    )}
+                  {availableRoles.map((roleItem) => (
+                    <option key={roleItem.id} value={roleItem.id}>
+                      {roleItem.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.role && (
                   <p className="mt-1 text-[11px] text-[#d92d20] font-medium">

@@ -17,7 +17,9 @@ export const userFormSchema = z.object({
     .toLowerCase()
     .trim(),
   status: userStatusEnum,
-  role: z.string().min(1, "Please select a configured user type/role."),
+  role: z.string().optional().default(""),
+  roleId: z.union([z.number(), z.string()]).optional().nullable(),
+  role_id: z.union([z.number(), z.string()]).optional().nullable(),
   notificationAlerts: z.boolean().optional(),
   emailMfa: z.boolean().optional(),
   smsMfa: z.boolean().optional(),

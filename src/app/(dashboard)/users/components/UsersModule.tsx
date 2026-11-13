@@ -23,6 +23,7 @@ const DEFAULT_STATS: UserStats = {
   inactiveUsers: 0,
   totalGrowth: "0%",
   activePercent: "0.0%",
+  categories: [],
   roleCounts: {
     teachers: 0,
     administrators: 0,
@@ -87,14 +88,19 @@ export function UsersModule({ initialData, initialStats }: UsersModuleProps) {
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
-  // Success Toast notification
+  // Success & Warning Toast notification
   const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState<"success" | "warning" | "error">("success");
 
-  const showToast = (message: string) => {
+  const showToast = (
+    message: string,
+    variant: "success" | "warning" | "error" = "success",
+  ) => {
     setToastMessage(message);
+    setToastVariant(variant);
     setTimeout(() => {
       setToastMessage("");
-    }, 4000);
+    }, 4500);
   };
 
   const fetchUsers = useCallback(async () => {
@@ -216,7 +222,7 @@ export function UsersModule({ initialData, initialStats }: UsersModuleProps) {
       {/* Toast Notification */}
       {toastMessage && (
         <Alert
-          variant="success"
+          variant={toastVariant}
           message={toastMessage}
           onClose={() => setToastMessage("")}
           className="shadow-sm animate-fade-in"
@@ -277,7 +283,16 @@ export function UsersModule({ initialData, initialStats }: UsersModuleProps) {
 
       {/* Bottom Summary Bar */}
       <section aria-label="User Categories Summary">
-        <UserCategoriesFooter stats={stats} />
+        <UserCategoriesFooter
+          stats={stats}
+          isLoading={isLoading && users.length === 0}
+          onSelectCategory={(categoryName) => {
+            const matched = allKnownRoles.find(
+              (r) => r.toLowerCase().trim() === categoryName.toLowerCase().trim(),
+            );
+            handleRoleChange(matched || categoryName);
+          }}
+        />
       </section>
 
       {/* Add / Edit User Form Modal */}
@@ -288,13 +303,28 @@ export function UsersModule({ initialData, initialStats }: UsersModuleProps) {
           setIsFormOpen(false);
           setEditingUser(null);
         }}
-        onSuccess={() => {
+        onSuccess={(result) => {
           fetchUsers();
-          showToast(
-            editingUser
-              ? `User "${editingUser.name}" updated successfully.`
-              : "New user account created successfully.",
-          );
+          if (editingUser) {
+            const roleWasSelected =
+              result?.role_id !== undefined && result?.role_id !== null;
+            if (roleWasSelected && result?.role_changed === false) {
+              showToast(
+                "User profile updated, but role assignment was not changed by the server.",
+                "warning",
+              );
+            } else {
+              showToast(
+                result?.message || `User "${editingUser.name}" updated successfully.`,
+                "success",
+              );
+            }
+          } else {
+            showToast(
+              result?.message || "New user account created successfully.",
+              "success",
+            );
+          }
         }}
       />
 
